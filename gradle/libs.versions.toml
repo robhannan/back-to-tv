@@ -1,0 +1,10 @@
+# Versions for the Android build, pinned exactly.
+[versions]
+# Android Gradle Plugin. It builds Kotlin itself (AGP 9's built-in Kotlin).
+agp = "9.5.1"
+# Kotlin Gradle Plugin on the build classpath, overriding the older one AGP brings.
+kotlin = "2.4.21"
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
