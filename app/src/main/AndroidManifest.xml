@@ -52,6 +52,28 @@
                 android:resource="@xml/key_forward" />
         </service>
 
+        <!-- The box's screensaver slot: starts the TV's own screensaver while the TV shows the box's input. -->
+        <service
+            android:name=".SaverDream"
+            android:exported="true"
+            android:label="@string/saver_label"
+            android:permission="android.permission.BIND_DREAM_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.dreams.DreamService" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </service>
+
+        <!-- Debugging only: SSAP requests from adb (the shell holds DUMP; apps can't send this). -->
+        <receiver
+            android:name=".DebugReceiver"
+            android:exported="true"
+            android:permission="android.permission.DUMP">
+            <intent-filter>
+                <action android:name="io.github.robhannan.backtotv.SSAP" />
+            </intent-filter>
+        </receiver>
+
         <!-- Settings: pairing with the TV, the box's input, the launcher to open on the box itself. -->
         <activity
             android:name=".SetupActivity"

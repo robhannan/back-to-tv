@@ -84,6 +84,35 @@ class TvRemote(private val context: Context) {
         mainWs = null
         state = State.OFF
         tvApp = ""
+        saverShown = false
+    }
+
+    private val pending = java.util.concurrent.ConcurrentHashMap<String, (JSONObject) -> Unit>()
+    private val nextId = java.util.concurrent.atomic.AtomicInteger()
+
+    /** Sends one SSAP request (ssap://...) and hands the reply (or {"error":...}) to [done], on OkHttp's thread. */
+    fun request(uri: String, payload: JSONObject = JSONObject(), done: (JSONObject) -> Unit = {}) {
+        val ws = mainWs
+        if (ws == null || state != State.READY) return done(JSONObject().put("error", "not connected"))
+        val id = "req" + nextId.incrementAndGet()
+        pending[id] = done
+        val msg = JSONObject().put("type", "request").put("id", id).put("uri", uri)
+        if (payload.length() > 0) msg.put("payload", payload)
+        if (!ws.send(msg.toString())) pending.remove(id)?.invoke(JSONObject().put("error", "send failed"))
+    }
+
+    /** Whether we started the TV's screensaver and it may still be up (the TV doesn't report it as an app). */
+    @Volatile var saverShown = false
+
+    /** Starts LG's screensaver on the TV (an overlay; the foreground app stays the same). */
+    fun startSaver() = request("ssap://system.launcher/launch", JSONObject().put("id", SAVER)) { r ->
+        saverShown = r.optBoolean("returnValue")
+        Log.d(TAG, "TV screensaver started: $r")
+    }
+
+    fun closeSaver() {
+        saverShown = false
+        request("ssap://system.launcher/close", JSONObject().put("id", SAVER)) { r -> Log.d(TAG, "TV screensaver closed: $r") }
     }
 
     /** Sends one remote button (LG's names: UP, DOWN, LEFT, RIGHT, ENTER, BACK, HOME, MENU, ...). False if not connected. */
@@ -110,6 +139,10 @@ class TvRemote(private val context: Context) {
                 if (gen != generation) return
                 val m = runCatching { JSONObject(text) }.getOrNull() ?: return
                 val payload = m.optJSONObject("payload")
+                pending.remove(m.optString("id"))?.let { cb ->
+                    cb(if (m.optString("type") == "error") JSONObject().put("error", m.optString("error")) else payload ?: JSONObject())
+                    return
+                }
                 when {
                     m.optString("type") == "error" -> {
                         lastError = m.optString("error")
@@ -177,5 +210,6 @@ class TvRemote(private val context: Context) {
 
     companion object {
         const val TAG = "BackToTv"
+        const val SAVER = "com.webos.app.screensaver"
     }
 }

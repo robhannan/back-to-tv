@@ -57,6 +57,29 @@ adb shell settings put secure enabled_accessibility_services "$(adb shell settin
 adb shell settings put secure accessibility_enabled 1
 ```
 
+## The TV's screensaver over the box
+
+LG's screensaver covers the TV's own screens, but not a still picture from the box. "TV screensaver (Back to TV)" goes in
+the box's screensaver slot instead: when the box's screensaver timer runs out while the TV shows the box's input, it starts
+LG's screensaver on the TV (`ssap://system.launcher/launch` of `com.webos.app.screensaver`; the TV refuses
+`tvpower/turnOnScreenSaver` from the network) and ends at once, leaving the box as it was underneath. The next press on the
+box's remote only dismisses the TV's screensaver; the Magic Remote dismisses it as usual. Video apps that keep the box awake
+keep the screensaver away, as with any Android screensaver.
+
+```sh
+adb shell settings put secure screensaver_components io.github.robhannan.backtotv/.SaverDream
+adb shell settings put secure screensaver_enabled 1
+adb shell settings put system screen_off_timeout 300000   # minutes of idle before it starts, here 5
+```
+
+For trying other SSAP requests, `DebugReceiver` takes them from adb only (the sender needs `android.permission.DUMP`):
+
+```sh
+adb shell am broadcast -n io.github.robhannan.backtotv/.DebugReceiver -a io.github.robhannan.backtotv.SSAP \
+  --es uri ssap://com.webos.service.tvpower/power/getPowerState
+adb logcat -s BackToTv
+```
+
 ## Build and install
 
 Needs JDK 17+ and the Android SDK (compileSdk 36).

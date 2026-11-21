@@ -21,6 +21,7 @@ import android.view.accessibility.AccessibilityEvent
  */
 class KeyForwardService : AccessibilityService() {
     private lateinit var tv: TvRemote
+    val remote: TvRemote? get() = if (::tv.isInitialized) tv else null
     private lateinit var cfg: Config
     private val screen = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -45,8 +46,22 @@ class KeyForwardService : AccessibilityService() {
         if (cfg.forwardKeys && cfg.host.isNotEmpty()) tv.start()
     }
 
+    private var swallowUp = -1
+
     override fun onKeyEvent(event: KeyEvent): Boolean {
         val name = KEYS[event.keyCode] ?: return false
+        // the up of a press that dismissed the TV's screensaver
+        if (event.action == KeyEvent.ACTION_UP && event.keyCode == swallowUp) {
+            swallowUp = -1
+            return true
+        }
+        // the TV's screensaver (started by SaverDream) is over the box's picture: the first press only dismisses it, like any
+        // screensaver. (If the Magic Remote already dismissed it, this costs one press.)
+        if (tv.saverShown && event.action == KeyEvent.ACTION_DOWN) {
+            tv.closeSaver()
+            swallowUp = event.keyCode
+            return true
+        }
         if (!cfg.forwardKeys || tv.state != TvRemote.State.READY) return false
         val app = tv.tvApp
         if (app.isEmpty() || app == cfg.input) return false // the box's input (or unknown): the box handles it
