@@ -1,6 +1,7 @@
 package io.github.robhannan.backtotv
 
 import android.app.Activity
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.text.InputType
@@ -31,6 +32,7 @@ class SetupActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         cfg = Config(this)
+        if (savedInstanceState == null) applyExtras(intent) // not again when rebuilt (recreate keeps the first intent)
 
         val host = field("TV address (CleanYourTV, port 8802)", cfg.host, InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI)
         val code = field("Pairing code (TV: CleanYourTV > Features > AI agents (MCP) > Connect an agent)", "", InputType.TYPE_CLASS_TEXT)
@@ -94,14 +96,25 @@ class SetupActivity : Activity() {
             addView(column(text("Back to TV: settings", 30f), host, code, input, pair, test, launcherButton, keys, keyStatus, idle, idleMins, status, help))
         })
 
-        // set up from adb extras
-        intent.getStringExtra("host")?.let { cfg.host = it; host.setText(it) }
-        intent.getStringExtra("input")?.let { cfg.input = it; input.setText(cfg.input) }
-        intent.getStringExtra("fallback")?.let { cfg.fallback = it; showLauncher() }
-        if (intent.hasExtra("idleSaver")) cfg.idleSaver = intent.getBooleanExtra("idleSaver", false)
-        if (intent.hasExtra("idleMinutes")) cfg.idleMinutes = intent.getIntExtra("idleMinutes", 5)
-        intent.getStringExtra("code")?.let { pairWith(it) }
         status.text = state()
+    }
+
+    // settings passed from adb (see the class comment); applied before the screen is built, so it shows them
+    private fun applyExtras(i: Intent) {
+        i.getStringExtra("host")?.let { cfg.host = it }
+        i.getStringExtra("input")?.let { cfg.input = it }
+        i.getStringExtra("fallback")?.let { cfg.fallback = it }
+        if (i.hasExtra("idleSaver")) cfg.idleSaver = i.getBooleanExtra("idleSaver", false)
+        if (i.hasExtra("idleMinutes")) cfg.idleMinutes = i.getIntExtra("idleMinutes", 5)
+        if (i.hasExtra("forwardKeys")) cfg.forwardKeys = i.getBooleanExtra("forwardKeys", true)
+        i.getStringExtra("code")?.let { code -> window.decorView.post { pairWith(code) } }
+    }
+
+    // started again while open (adb): apply the new extras, then rebuild the screen so it shows them
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        applyExtras(intent)
+        recreate()
     }
 
     private fun pairWith(code: String) {

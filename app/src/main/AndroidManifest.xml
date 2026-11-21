@@ -77,7 +77,8 @@
         <!-- Settings: pairing with the TV, the box's input, the launcher to open on the box itself. -->
         <activity
             android:name=".SetupActivity"
-            android:exported="true">
+            android:exported="true"
+            android:launchMode="singleTop">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
