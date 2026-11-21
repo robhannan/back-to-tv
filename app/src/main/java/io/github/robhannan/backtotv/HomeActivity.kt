@@ -66,6 +66,13 @@ class HomeActivity : Activity() {
             status.text = "No other launcher is installed: press Menu for settings."
             return
         }
-        startActivity(Intent(Intent.ACTION_MAIN).setComponent(c).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        // NO_HISTORY: the launcher closes as soon as an app opens from it, so backing out of any app lands here (and on the
+        // TV's Home), never on a launcher left open underneath. Started without CATEGORY_HOME, so Android does not treat it
+        // as a home screen either.
+        startActivity(
+            Intent(Intent.ACTION_MAIN)
+                .setComponent(c)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_HISTORY or Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS),
+        )
     }
 }

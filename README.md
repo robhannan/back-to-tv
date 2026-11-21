@@ -16,7 +16,11 @@ Netflix on the box ──Back──► Back to TV (box's Home) ──HTTP──�
 - **Box just woke** (within 15 s): does nothing to the TV. That's the TV turning on, you choosing the box's input, or
   CleanYourTV starting an app on the box.
 - **Using the box directly:** the screen shows "OK: apps on this box". OK opens your usual launcher (FLauncher, Google
-  TV's, ...); apps started from there come back to it. Pressing Home on the box's own remote still sends the TV Home.
+  TV's, ...). It closes as soon as an app starts from it, so backing out of that app also comes back here and sends the
+  TV Home. Pressing Home on the box's own remote does too.
+
+After first making it the box's Home, close the old launcher once (`adb shell am force-stop <launcher package>`):
+until then Android keeps the old launcher's home window on top, and Back from an app returns to it.
 
 It talks to the TV through CleanYourTV's MCP server (Features > AI agents (MCP) on the TV), with its own pairing token,
 kept in the app's private storage. It uses the TV's `get_current_app` and `navigate` tools only. The token is refreshed by
