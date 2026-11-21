@@ -1,7 +1,7 @@
 # Back to TV
 
 A tiny home screen for an Android TV box (built for an NVIDIA SHIELD) that sits behind an LG TV running
-[CleanYourTV](https://github.com/cleanyourtv). When you back out of an app on the box, Android returns to its home screen,
+CleanYourTV. When you back out of an app on the box, Android returns to its home screen,
 which is this app, and it sends the TV back to **its** Home instead of leaving you on the box's launcher.
 
 ```
