@@ -26,6 +26,37 @@ It talks to the TV through CleanYourTV's MCP server (Features > AI agents (MCP) 
 kept in the app's private storage. It uses the TV's `get_current_app` and `navigate` tools only. The token is refreshed by
 use; if the TV drops it (HTTP 401), pair again.
 
+## The box's remote drives the TV
+
+CEC is slow, so the box usually has its own remote (here a universal IR remote through a Flirc receiver). With the
+"Back to TV remote keys" accessibility service on, that remote also drives the TV's own screens:
+
+- **TV shows the box's input:** every press goes to the box as usual.
+- **TV shows anything else** (Home, Live TV, settings): arrows, OK, Back, Home, Menu, media keys, channel and number
+  keys are swallowed on the box and sent to the TV with LG's network remote protocol (SSAP on `wss://<tv>:3001`; this
+  firmware closes the plain port 3000). Nothing is pressed twice, because the TV never sees the box's remote itself.
+- Volume, mute and power are never touched. While the TV is off, unreachable or not yet approved, every press goes to
+  the box, so its remote can't go dead.
+
+The TV pushes every change of the on-screen app over the same connection, so there's no polling. The connection only
+runs while the box's screen is on. The first time, the TV asks to allow "LG Remote App" (LG's signed manifest from
+[lgtv2](https://github.com/hobbyquaker/lgtv2), MIT, see `LICENSE-lgtv2`); the key it then gives is kept. The TV's
+self-signed certificate is pinned the first time it is seen.
+
+Turn off the box's **One Touch Play** (HDMI-CEC "Switch TV input"), or the box's first press while the TV shows its
+own Home wakes it and pulls the TV to its input:
+
+```sh
+adb shell settings put global hdmi_one_touch_play_enabled 0
+```
+
+Enable the service (keeping any others already on):
+
+```sh
+adb shell settings put secure enabled_accessibility_services "$(adb shell settings get secure enabled_accessibility_services):io.github.robhannan.backtotv/.KeyForwardService"
+adb shell settings put secure accessibility_enabled 1
+```
+
 ## Build and install
 
 Needs JDK 17+ and the Android SDK (compileSdk 36).

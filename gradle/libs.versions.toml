@@ -4,6 +4,11 @@
 agp = "9.5.1"
 # Kotlin Gradle Plugin on the build classpath, overriding the older one AGP brings.
 kotlin = "2.4.21"
+# WebSockets for LG's network remote protocol.
+okhttp = "4.12.0"
+
+[libraries]
+okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Back to TV</string>
+    <string name="key_forward_label">Back to TV remote keys</string>
+    <string name="key_forward_description">While the TV shows its own screens, sends this box\'s remote buttons (arrows, OK, Back, Home, Menu, media, numbers) to the TV over the network. Reads no screen content.</string>
 </resources>

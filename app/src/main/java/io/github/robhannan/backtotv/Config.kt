@@ -34,6 +34,21 @@ class Config(context: Context) {
         get() = prefs.getLong("lastOk", 0L)
         set(v) = prefs.edit().putLong("lastOk", v).apply()
 
+    /** The client key the TV gave on LG's network remote protocol, after the person accepted the box on screen. */
+    var lgKey: String
+        get() = prefs.getString("lgKey", "") ?: ""
+        set(v) = prefs.edit().putString("lgKey", v).apply()
+
+    /** SHA-256 of the TV's certificate on port 3001, pinned the first time (the TV's is self-signed). */
+    var lgCert: String
+        get() = prefs.getString("lgCert", "") ?: ""
+        set(v) = prefs.edit().putString("lgCert", v).apply()
+
+    /** Whether the box's remote drives the TV while the TV shows its own screens. */
+    var forwardKeys: Boolean
+        get() = prefs.getBoolean("forwardKeys", true)
+        set(v) = prefs.edit().putBoolean("forwardKeys", v).apply()
+
     val paired: Boolean get() = host.isNotEmpty() && token.isNotEmpty()
 
     val mcpUrl: String get() = "http://${host.substringBefore(':')}:${host.substringAfter(':', "8802")}/mcp"

@@ -20,6 +20,13 @@ class SetupActivity : Activity() {
     private lateinit var cfg: Config
     private lateinit var status: TextView
     private lateinit var launcherButton: Button
+    private val keyStatus by lazy { text("", 18f, GREY) }
+    private val tick = object : Runnable {
+        override fun run() {
+            keyStatus.text = "Remote keys: " + KeyForwardService.status()
+            keyStatus.postDelayed(this, 1000)
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -58,6 +65,13 @@ class SetupActivity : Activity() {
             }
         }
         showLauncher()
+        val keys = Button(this).apply {
+            setOnClickListener {
+                cfg.forwardKeys = !cfg.forwardKeys
+                showKeys(this)
+            }
+        }
+        showKeys(keys)
         val help = text(
             "To make this the box's Home (so closing an app lands here), run once from a computer:\n" +
                 "adb shell cmd package set-home-activity $packageName/.HomeActivity\n" +
@@ -67,7 +81,7 @@ class SetupActivity : Activity() {
 
         setContentView(ScrollView(this).apply {
             setBackgroundColor(BG)
-            addView(column(text("Back to TV: settings", 30f), host, code, input, pair, test, launcherButton, status, help))
+            addView(column(text("Back to TV: settings", 30f), host, code, input, pair, test, launcherButton, keys, keyStatus, status, help))
         })
 
         // set up from adb extras
@@ -86,6 +100,20 @@ class SetupActivity : Activity() {
         status.text = "Pairing…"
         val name = "${Build.MODEL} (Back to TV)"
         App.io.execute { val r = Tv.pair(cfg, code, name); runOnUiThread { status.text = r.text + "\n" + state() } }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        tick.run()
+    }
+
+    override fun onPause() {
+        keyStatus.removeCallbacks(tick)
+        super.onPause()
+    }
+
+    private fun showKeys(b: Button) {
+        b.text = "This box's remote drives the TV on the TV's own screens: ${if (cfg.forwardKeys) "ON" else "OFF"} (press to change)"
     }
 
     private fun showLauncher() {
