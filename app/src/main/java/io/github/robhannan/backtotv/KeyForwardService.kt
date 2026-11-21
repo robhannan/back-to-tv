@@ -56,6 +56,9 @@ class KeyForwardService : AccessibilityService() {
     override fun onServiceConnected() {
         super.onServiceConnected()
         cfg = Config(this)
+        // connected again (the service can be re-bound in the same process): never leave a second connection running
+        if (::tv.isInitialized) tv.stop()
+        runCatching { unregisterReceiver(screen) }
         tv = TvRemote(this)
         // switching to the box's input (with the Magic Remote, say) counts as activity: the idle time starts then
         tv.onAppChanged = { lastActivity = SystemClock.elapsedRealtime() }

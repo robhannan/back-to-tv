@@ -61,6 +61,11 @@ class Config(context: Context) {
         get() = prefs.getInt("idleMinutes", 5)
         set(v) = prefs.edit().putInt("idleMinutes", v.coerceIn(1, 120)).apply()
 
+    /** Whether the TV's screensaver we started may still be up; kept across restarts, so a press always dismisses it. */
+    var saverShown: Boolean
+        get() = prefs.getBoolean("saverShown", false)
+        set(v) = prefs.edit().putBoolean("saverShown", v).apply()
+
     val paired: Boolean get() = host.isNotEmpty() && token.isNotEmpty()
 
     val mcpUrl: String get() = "http://${host.substringBefore(':')}:${host.substringAfter(':', "8802")}/mcp"

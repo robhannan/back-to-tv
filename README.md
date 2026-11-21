@@ -78,6 +78,22 @@ adb shell settings put secure screensaver_enabled 1
 adb shell settings put system screen_off_timeout 300000   # minutes of idle before it starts, here 5
 ```
 
+**Dismissing it.** A screensaver started this way isn't the TV's own (the TV's power daemon only starts one when no app
+objects, and the HDMI input objects while it has a picture), so the TV's remotes don't dismiss it by themselves. Two parts
+make it behave like a normal screensaver:
+
+- **The box's remote:** the first press closes it and does nothing else. Back to TV remembers that it started the
+  screensaver across restarts; if LG's network remote won't close it, CleanYourTV's `close_app` tool does.
+- **The Magic Remote and LG's IR remote:** `tv/saver-dismiss.js` runs on the TV (root; Homebrew Channel starts it at
+  boot) and closes the screensaver on the first key. It reads the remotes' input devices without grabbing them.
+
+```sh
+TV_HOST=<tv-ip> [TV_KEY=~/.ssh/key] tv/install.sh        # install and start; tv/install.sh remove takes it off
+```
+
+After a Magic Remote dismissal the box doesn't know the screensaver is gone, so the box's remote's next press is spent on
+closing nothing.
+
 For trying other SSAP requests, `DebugReceiver` takes them from adb only (the sender needs `android.permission.DUMP`):
 
 ```sh

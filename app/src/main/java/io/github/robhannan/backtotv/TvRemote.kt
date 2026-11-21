@@ -87,7 +87,6 @@ class TvRemote(private val context: Context) {
         mainWs = null
         state = State.OFF
         tvApp = ""
-        saverShown = false
     }
 
     private val pending = java.util.concurrent.ConcurrentHashMap<String, (JSONObject) -> Unit>()
@@ -104,8 +103,10 @@ class TvRemote(private val context: Context) {
         if (!ws.send(msg.toString())) pending.remove(id)?.invoke(JSONObject().put("error", "send failed"))
     }
 
-    /** Whether we started the TV's screensaver and it may still be up (the TV doesn't report it as an app). */
-    @Volatile var saverShown = false
+    /** Whether we started the TV's screensaver and it may still be up (the TV doesn't report it); kept in [Config]. */
+    var saverShown: Boolean
+        get() = cfg.saverShown
+        set(v) { cfg.saverShown = v }
 
     /** Starts LG's screensaver on the TV (an overlay; the foreground app stays the same). */
     fun startSaver() = request("ssap://system.launcher/launch", JSONObject().put("id", SAVER)) { r ->
@@ -113,9 +114,18 @@ class TvRemote(private val context: Context) {
         Log.d(TAG, "TV screensaver started: $r")
     }
 
+    /**
+     * Closes the TV's screensaver. LG's network remote only closes what this connection launched, so after a restart it can
+     * refuse (403); then CleanYourTV's close_app tool closes it on the TV itself.
+     */
     fun closeSaver() {
         saverShown = false
-        request("ssap://system.launcher/close", JSONObject().put("id", SAVER)) { r -> Log.d(TAG, "TV screensaver closed: $r") }
+        request("ssap://system.launcher/close", JSONObject().put("id", SAVER)) { r ->
+            Log.d(TAG, "TV screensaver closed: $r")
+            if (r.has("error") && cfg.paired) {
+                App.io.execute { Log.d(TAG, "TV screensaver closed by CleanYourTV: " + Tv.call(cfg, "close_app", JSONObject().put("id", SAVER)).text) }
+            }
+        }
     }
 
     /** Sends one remote button (LG's names: UP, DOWN, LEFT, RIGHT, ENTER, BACK, HOME, MENU, ...). False if not connected. */
