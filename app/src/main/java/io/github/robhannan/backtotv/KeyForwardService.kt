@@ -5,8 +5,12 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.media.AudioManager
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.os.PowerManager
+import android.os.SystemClock
 import android.util.Log
 import android.view.KeyEvent
 import android.view.accessibility.AccessibilityEvent
@@ -25,14 +29,36 @@ class KeyForwardService : AccessibilityService() {
     private lateinit var cfg: Config
     private val screen = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
-            if (intent.action == Intent.ACTION_SCREEN_ON) startTv() else tv.stop()
+            if (intent.action == Intent.ACTION_SCREEN_ON) startTv() else stopTv()
         }
+    }
+
+    // ---- the idle screensaver (Config.idleSaver): its own idle timer, since many apps keep the screen on when idle ----
+    private val main = Handler(Looper.getMainLooper())
+    @Volatile private var lastActivity = SystemClock.elapsedRealtime()
+    private val idleCheck = object : Runnable {
+        override fun run() {
+            checkIdle()
+            main.postDelayed(this, IDLE_CHECK_MS)
+        }
+    }
+
+    private fun checkIdle() {
+        if (!cfg.idleSaver || tv.state != TvRemote.State.READY || tv.saverShown || tv.tvApp != cfg.input) return
+        val idle = SystemClock.elapsedRealtime() - lastActivity
+        if (idle < cfg.idleMinutes * 60_000L) return
+        // sound playing means something is being watched or listened to: no screensaver then
+        if (getSystemService(AudioManager::class.java).isMusicActive) return
+        Log.d(TvRemote.TAG, "idle ${idle / 1000} s with no sound: starting the TV's screensaver")
+        tv.startSaver()
     }
 
     override fun onServiceConnected() {
         super.onServiceConnected()
         cfg = Config(this)
         tv = TvRemote(this)
+        // switching to the box's input (with the Magic Remote, say) counts as activity: the idle time starts then
+        tv.onAppChanged = { lastActivity = SystemClock.elapsedRealtime() }
         instance = this
         val filter = IntentFilter().apply {
             addAction(Intent.ACTION_SCREEN_ON)
@@ -43,12 +69,21 @@ class KeyForwardService : AccessibilityService() {
     }
 
     private fun startTv() {
+        lastActivity = SystemClock.elapsedRealtime()
         if (cfg.forwardKeys && cfg.host.isNotEmpty()) tv.start()
+        main.removeCallbacks(idleCheck)
+        main.postDelayed(idleCheck, IDLE_CHECK_MS)
+    }
+
+    private fun stopTv() {
+        main.removeCallbacks(idleCheck)
+        tv.stop()
     }
 
     private var swallowUp = -1
 
     override fun onKeyEvent(event: KeyEvent): Boolean {
+        lastActivity = SystemClock.elapsedRealtime() // every key on the box, also CEC keys and volume, counts as activity
         val name = KEYS[event.keyCode] ?: return false
         // the up of a press that dismissed the TV's screensaver
         if (event.action == KeyEvent.ACTION_UP && event.keyCode == swallowUp) {
@@ -77,12 +112,14 @@ class KeyForwardService : AccessibilityService() {
 
     override fun onDestroy() {
         runCatching { unregisterReceiver(screen) }
-        tv.stop()
+        stopTv()
         if (instance === this) instance = null
         super.onDestroy()
     }
 
     companion object {
+        private const val IDLE_CHECK_MS = 30_000L
+
         @Volatile var instance: KeyForwardService? = null
 
         /** The connection's state, for the settings screen. */

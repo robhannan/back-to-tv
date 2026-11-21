@@ -41,6 +41,9 @@ class TvRemote(private val context: Context) {
     @Volatile var lastError = ""
         private set
 
+    /** Called (on OkHttp's thread) when the TV's foreground app changes. */
+    @Volatile var onAppChanged: ((String) -> Unit)? = null
+
     private val cfg = Config(context)
     /** Trust on first use: accept the TV's self-signed certificate once, then only that one. */
     private val pin = object : X509TrustManager {
@@ -165,8 +168,12 @@ class TvRemote(private val context: Context) {
                         )
                     }
                     m.optString("id") == "fg" && payload != null && payload.has("appId") -> {
-                        tvApp = payload.optString("appId")
-                        Log.d(TAG, "TV shows $tvApp")
+                        val app = payload.optString("appId")
+                        if (app != tvApp) {
+                            tvApp = app
+                            Log.d(TAG, "TV shows $tvApp")
+                            onAppChanged?.invoke(app)
+                        }
                     }
                     m.optString("id") == "pointer" && payload != null -> openPointer(payload.optString("socketPath"), gen)
                 }

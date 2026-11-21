@@ -49,6 +49,18 @@ class Config(context: Context) {
         get() = prefs.getBoolean("forwardKeys", true)
         set(v) = prefs.edit().putBoolean("forwardKeys", v).apply()
 
+    /**
+     * Start the TV's screensaver when the box has had no key press for [idleMinutes] and plays no sound, while the TV shows
+     * the box's input. For apps that keep the screen on even when idle (so Android never starts a screensaver). Off by default.
+     */
+    var idleSaver: Boolean
+        get() = prefs.getBoolean("idleSaver", false)
+        set(v) = prefs.edit().putBoolean("idleSaver", v).apply()
+
+    var idleMinutes: Int
+        get() = prefs.getInt("idleMinutes", 5)
+        set(v) = prefs.edit().putInt("idleMinutes", v.coerceIn(1, 120)).apply()
+
     val paired: Boolean get() = host.isNotEmpty() && token.isNotEmpty()
 
     val mcpUrl: String get() = "http://${host.substringBefore(':')}:${host.substringAfter(':', "8802")}/mcp"

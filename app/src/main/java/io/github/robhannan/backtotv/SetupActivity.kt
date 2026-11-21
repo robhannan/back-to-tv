@@ -14,7 +14,7 @@ import android.widget.TextView
  * opens on the box. Everything can also be passed as extras, so it can be set up over adb:
  *
  *   adb shell am start -n io.github.robhannan.backtotv/.SetupActivity --es host 192.168.1.20 --es code 123456 \
- *     [--es input com.webos.app.hdmi1] [--es fallback me.efesser.flauncher/.MainActivity]
+ *     [--es input com.webos.app.hdmi1] [--es fallback me.efesser.flauncher/.MainActivity] [--ez idleSaver true] [--ei idleMinutes 5]
  */
 class SetupActivity : Activity() {
     private lateinit var cfg: Config
@@ -72,6 +72,16 @@ class SetupActivity : Activity() {
             }
         }
         showKeys(keys)
+        val idle = Button(this).apply { setOnClickListener { cfg.idleSaver = !cfg.idleSaver; showIdle(this) } }
+        val idleMins = Button(this).apply {
+            setOnClickListener {
+                val steps = listOf(5, 10, 15, 30, 60)
+                cfg.idleMinutes = steps[(steps.indexOf(cfg.idleMinutes) + 1) % steps.size]
+                showIdle(idle); text = "Idle time: ${cfg.idleMinutes} minutes (press to change)"
+            }
+            text = "Idle time: ${cfg.idleMinutes} minutes (press to change)"
+        }
+        showIdle(idle)
         val help = text(
             "To make this the box's Home (so closing an app lands here), run once from a computer:\n" +
                 "adb shell cmd package set-home-activity $packageName/.HomeActivity\n" +
@@ -81,13 +91,15 @@ class SetupActivity : Activity() {
 
         setContentView(ScrollView(this).apply {
             setBackgroundColor(BG)
-            addView(column(text("Back to TV: settings", 30f), host, code, input, pair, test, launcherButton, keys, keyStatus, status, help))
+            addView(column(text("Back to TV: settings", 30f), host, code, input, pair, test, launcherButton, keys, keyStatus, idle, idleMins, status, help))
         })
 
         // set up from adb extras
         intent.getStringExtra("host")?.let { cfg.host = it; host.setText(it) }
         intent.getStringExtra("input")?.let { cfg.input = it; input.setText(cfg.input) }
         intent.getStringExtra("fallback")?.let { cfg.fallback = it; showLauncher() }
+        if (intent.hasExtra("idleSaver")) cfg.idleSaver = intent.getBooleanExtra("idleSaver", false)
+        if (intent.hasExtra("idleMinutes")) cfg.idleMinutes = intent.getIntExtra("idleMinutes", 5)
         intent.getStringExtra("code")?.let { pairWith(it) }
         status.text = state()
     }
@@ -110,6 +122,11 @@ class SetupActivity : Activity() {
     override fun onPause() {
         keyStatus.removeCallbacks(tick)
         super.onPause()
+    }
+
+    private fun showIdle(b: Button) {
+        b.text = "TV screensaver after ${cfg.idleMinutes} min with no key and no sound, even in apps that keep the screen on: " +
+            "${if (cfg.idleSaver) "ON" else "OFF"} (press to change)"
     }
 
     private fun showKeys(b: Button) {

@@ -63,8 +63,14 @@ LG's screensaver covers the TV's own screens, but not a still picture from the b
 the box's screensaver slot instead: when the box's screensaver timer runs out while the TV shows the box's input, it starts
 LG's screensaver on the TV (`ssap://system.launcher/launch` of `com.webos.app.screensaver`; the TV refuses
 `tvpower/turnOnScreenSaver` from the network) and ends at once, leaving the box as it was underneath. The next press on the
-box's remote only dismisses the TV's screensaver; the Magic Remote dismisses it as usual. Video apps that keep the box awake
-keep the screensaver away, as with any Android screensaver.
+box's remote only dismisses the TV's screensaver; the Magic Remote dismisses it as usual. Android never starts a screensaver while
+an app keeps the screen on, and many TV apps (YouTube-style ones especially) do that even when idle.
+
+**Idle screensaver (option, off by default):** the key service keeps its own idle timer instead. While the TV shows the
+box's input, after N minutes (5 by default) with no key press on the box and **no sound playing**, it starts the TV's
+screensaver, whatever the app. Sound playing means a video or music is on, so it waits. A video playing with the box's
+own sound muted counts as idle. Switching the TV to the box's input counts as activity. Turn it on in Back to TV's settings,
+or `am start -n io.github.robhannan.backtotv/.SetupActivity --ez idleSaver true --ei idleMinutes 5`.
 
 ```sh
 adb shell settings put secure screensaver_components io.github.robhannan.backtotv/.SaverDream
